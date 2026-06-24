@@ -19,6 +19,13 @@ const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
+// Render (and most PaaS hosts) sit the app behind a reverse proxy that sets
+// X-Forwarded-For. Without telling Express to trust it, express-rate-limit
+// throws ERR_ERL_UNEXPECTED_X_FORWARDED_FOR on every request, which crashes
+// the response before CORS headers are sent — the browser then misleadingly
+// reports this as a CORS error instead of the real cause.
+app.set('trust proxy', 1);
+
 connectDB();
 
 app.use(
