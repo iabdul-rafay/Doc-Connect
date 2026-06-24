@@ -28,9 +28,31 @@ app.set('trust proxy', 1);
 
 connectDB();
 
+// CLIENT_URL can be a single origin or a comma-separated list (handy while
+// debugging, or if you have both a production and a preview Vercel URL).
+// Trailing slashes are stripped automatically so "https://x.vercel.app/" and
+// "https://x.vercel.app" both match.
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
+  .split(',')
+  .map((o) => o.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
+
+console.log('✅ CORS allowed origins:', allowedOrigins);
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin(origin, callback) {
+      // Allow no-origin requests (curl, server-to-server, Postman, health checks).
+      if (!origin) return callback(null, true);
+
+      const normalized = origin.replace(/\/+$/, '');
+      if (allowedOrigins.includes(normalized)) {
+        return callback(null, true);
+      }
+
+      console.warn(`⚠  CORS blocked request from origin "${origin}". Allowed: ${allowedOrigins.join(', ')}`);
+      return callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
   })
 );
@@ -59,5 +81,5 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`\n🩺 Doc-Connect API ready on http://localhost:${PORT}`);
-  console.log(`   Client origin: ${process.env.CLIENT_URL || 'http://localhost:5173'}\n`);
+  console.log(`   Client origin(s): ${allowedOrigins.join(', ')}\n`);
 });
