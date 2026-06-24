@@ -1,40 +1,62 @@
 /**
  * utils/email.js
- * Transactional email via Nodemailer.
+ * Transactional email.
  *
- * If EMAIL_USER is configured, real SMTP (e.g. Gmail) is used. Otherwise a free
- * Ethereal test account is created automatically so emails "send" during
- * development — a clickable preview URL is printed to the console for each one.
+ * Primary path: Brevo's HTTPS REST API (https://api.brevo.com). This goes
+ * over port 443 like any normal web request, so it works on hosts (like
+ * Render's free tier) that block outbound SMTP ports 25/465/587 — raw SMTP
+ * to Gmail or any other provider will NOT work on those hosts.
+ *
+ * Set BREVO_API_KEY (and optionally EMAIL_FROM) to use it. Without an API
+ * key, falls back to a free Ethereal test inbox so emails still "send"
+ * during local development — a clickable preview URL is printed to the
+ * console for each one.
  */
 const nodemailer = require('nodemailer');
 
-let transporterPromise = null;
+const BREVO_ENDPOINT = 'https://api.brevo.com/v3/smtp/email';
 
-async function getTransporter() {
-  if (transporterPromise) return transporterPromise;
+let etherealTransporterPromise = null;
 
-  transporterPromise = (async () => {
-    if (process.env.EMAIL_USER) {
-      // Real SMTP from environment variables.
-      return nodemailer.createTransport({
-        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-        port: Number(process.env.EMAIL_PORT) || 587,
-        secure: Number(process.env.EMAIL_PORT) === 465,
-        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-        // Force IPv4: some hosts (e.g. Render) have outbound IPv6 that doesn't
-        // actually route to Gmail's SMTP servers, causing the connection to
-        // hang until Nodemailer's 2-minute default timeout. Forcing IPv4 and
-        // shortening the timeouts means a real failure surfaces in seconds,
-        // not minutes.
-        family: 4,
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 10000,
-      });
-    }
-    // Dev fallback: Ethereal captures mail and gives a preview link.
+function parseFrom(fromString) {
+  // Accepts "Doc-Connect <no-reply@docconnect.app>" or a bare email address.
+  const fallback = { name: 'Doc-Connect', email: 'no-reply@docconnect.app' };
+  if (!fromString) return fallback;
+  const match = fromString.match(/^\s*(.*?)\s*<(.+?)>\s*$/);
+  if (match) return { name: match[1] || fallback.name, email: match[2] };
+  return { name: fallback.name, email: fromString.trim() };
+}
+
+async function sendViaBrevo({ to, subject, html }) {
+  const sender = parseFrom(process.env.EMAIL_FROM);
+  const res = await fetch(BREVO_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'api-key': process.env.BREVO_API_KEY,
+      'Content-Type': 'application/json',
+      accept: 'application/json',
+    },
+    body: JSON.stringify({
+      sender,
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Brevo API error ${res.status}: ${body.slice(0, 300)}`);
+  }
+  const data = await res.json().catch(() => ({}));
+  console.log(`📧 Email sent to ${to} via Brevo (id: ${data.messageId || 'n/a'})`);
+}
+
+async function getEtherealTransporter() {
+  if (etherealTransporterPromise) return etherealTransporterPromise;
+  etherealTransporterPromise = (async () => {
     const testAccount = await nodemailer.createTestAccount();
-    console.log('ℹ  No EMAIL_USER set — using Ethereal test inbox for outgoing email.');
+    console.log('ℹ  No BREVO_API_KEY set — using Ethereal test inbox for outgoing email.');
     return nodemailer.createTransport({
       host: 'smtp.ethereal.email',
       port: 587,
@@ -42,8 +64,20 @@ async function getTransporter() {
       auth: { user: testAccount.user, pass: testAccount.pass },
     });
   })();
+  return etherealTransporterPromise;
+}
 
-  return transporterPromise;
+async function sendViaEthereal({ to, subject, html }) {
+  const transporter = await getEtherealTransporter();
+  const info = await transporter.sendMail({
+    from: process.env.EMAIL_FROM || 'Doc-Connect <no-reply@docconnect.app>',
+    to,
+    subject,
+    html,
+  });
+  const preview = nodemailer.getTestMessageUrl(info);
+  if (preview) console.log(`📧 Email to ${to} — preview: ${preview}`);
+  else console.log(`📧 Email sent to ${to} (id: ${info.messageId})`);
 }
 
 function shell(title, bodyHtml) {
@@ -71,18 +105,11 @@ function button(href, label) {
 }
 
 async function send({ to, subject, html }) {
-  const transporter = await getTransporter();
-  const info = await transporter.sendMail({
-    from: process.env.EMAIL_FROM || 'Doc-Connect <no-reply@docconnect.app>',
-    to,
-    subject,
-    html,
-  });
-
-  const preview = nodemailer.getTestMessageUrl(info);
-  if (preview) console.log(`📧 Email to ${to} — preview: ${preview}`);
-  else console.log(`📧 Email sent to ${to} (id: ${info.messageId})`);
-  return info;
+  if (process.env.BREVO_API_KEY) {
+    await sendViaBrevo({ to, subject, html });
+  } else {
+    await sendViaEthereal({ to, subject, html });
+  }
 }
 
 async function sendVerificationEmail(user, verifyUrl) {
