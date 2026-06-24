@@ -21,6 +21,15 @@ async function getTransporter() {
         port: Number(process.env.EMAIL_PORT) || 587,
         secure: Number(process.env.EMAIL_PORT) === 465,
         auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+        // Force IPv4: some hosts (e.g. Render) have outbound IPv6 that doesn't
+        // actually route to Gmail's SMTP servers, causing the connection to
+        // hang until Nodemailer's 2-minute default timeout. Forcing IPv4 and
+        // shortening the timeouts means a real failure surfaces in seconds,
+        // not minutes.
+        family: 4,
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 10000,
       });
     }
     // Dev fallback: Ethereal captures mail and gives a preview link.

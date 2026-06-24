@@ -56,11 +56,11 @@ const register = asyncHandler(async (req, res) => {
   }
 
   const verifyUrl = `${clientUrl()}/verify-email?token=${rawToken}`;
-  try {
-    await sendVerificationEmail(user, verifyUrl);
-  } catch (err) {
+  // Don't await: email sending can be slow or fail (bad SMTP creds, network
+  // issues), and it should never delay or break the registration response.
+  sendVerificationEmail(user, verifyUrl).catch((err) => {
     console.error('⚠  Verification email failed to send:', err.message);
-  }
+  });
 
   res.status(201).json({
     success: true,
@@ -110,11 +110,9 @@ const resendVerification = asyncHandler(async (req, res) => {
     const rawToken = user.issueToken('verify', VERIFY_TTL);
     await user.save({ validateBeforeSave: false });
     const verifyUrl = `${clientUrl()}/verify-email?token=${rawToken}`;
-    try {
-      await sendVerificationEmail(user, verifyUrl);
-    } catch (err) {
+    sendVerificationEmail(user, verifyUrl).catch((err) => {
       console.error('⚠  Resend verification failed:', err.message);
-    }
+    });
   }
 
   res.json({
@@ -164,11 +162,9 @@ const forgotPassword = asyncHandler(async (req, res) => {
     const rawToken = user.issueToken('reset', RESET_TTL);
     await user.save({ validateBeforeSave: false });
     const resetUrl = `${clientUrl()}/reset-password?token=${rawToken}`;
-    try {
-      await sendResetEmail(user, resetUrl);
-    } catch (err) {
+    sendResetEmail(user, resetUrl).catch((err) => {
       console.error('⚠  Reset email failed:', err.message);
-    }
+    });
   }
 
   res.json({ success: true, message: 'If that email is registered, a reset link has been sent.' });
