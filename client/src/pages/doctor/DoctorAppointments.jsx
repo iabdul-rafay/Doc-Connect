@@ -88,6 +88,20 @@ export default function DoctorAppointments() {
                 </p>
               )}
 
+              {a.patient?.medical && (a.patient.medical.bloodGroup || a.patient.medical.allergies || a.patient.medical.conditions) && (
+                <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                  {a.patient.medical.bloodGroup && (
+                    <span className="rounded-full bg-rose-50 px-2.5 py-1 font-medium text-rose-700">Blood: {a.patient.medical.bloodGroup}</span>
+                  )}
+                  {a.patient.medical.allergies && (
+                    <span className="rounded-full bg-amber-50 px-2.5 py-1 font-medium text-amber-700">Allergies: {a.patient.medical.allergies}</span>
+                  )}
+                  {a.patient.medical.conditions && (
+                    <span className="rounded-full bg-brand-50 px-2.5 py-1 font-medium text-brand-700">Conditions: {a.patient.medical.conditions}</span>
+                  )}
+                </div>
+              )}
+
               <div className="mt-4 flex flex-wrap gap-2">
                 {a.status === 'pending' && (
                   <>

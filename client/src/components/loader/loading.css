@@ -1,0 +1,53 @@
+/* DocConnect — futuristic loading screen animations (green + cyan neon). */
+
+@keyframes loader-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes loader-fade-out { from { opacity: 1; } to { opacity: 0; } }
+
+/* Expanding pulse rings around the core */
+@keyframes pulse-ring {
+  0%   { transform: scale(0.7); opacity: 0.55; }
+  80%  { opacity: 0; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+/* Rotating AI scanner ring */
+@keyframes scan-rotate { to { transform: rotate(360deg); } }
+/* Breathing glow on the logo core */
+@keyframes breathe {
+  0%,100% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(16,185,129,0.45)); }
+  50%     { transform: scale(1.06); filter: drop-shadow(0 0 26px rgba(34,211,238,0.7)); }
+}
+/* Traveling pulse along the ECG line */
+@keyframes ecg-move { to { stroke-dashoffset: -480; } }
+/* Progress bar shimmer */
+@keyframes bar-shimmer { 100% { transform: translateX(250%); } }
+/* Soft moving mesh */
+@keyframes mesh-drift {
+  0%,100% { transform: translate(0,0) scale(1); }
+  50%     { transform: translate(4%, -4%) scale(1.1); }
+}
+
+.loader-root { animation: loader-fade-in 0.35s ease both; }
+.loader-root.is-leaving { animation: loader-fade-out 0.5s ease both; }
+
+.pulse-ring { position: absolute; inset: 0; border-radius: 9999px; border: 2px solid var(--color-brand-400); animation: pulse-ring 2.4s ease-out infinite; }
+.scan-ring {
+  position: absolute; inset: -14px; border-radius: 9999px;
+  background: conic-gradient(from 0deg, transparent 0deg, var(--color-cyan-400) 60deg, transparent 140deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  animation: scan-rotate 2.6s linear infinite;
+}
+.scan-ring.reverse { inset: -26px; animation-duration: 4s; animation-direction: reverse;
+  background: conic-gradient(from 0deg, transparent 0deg, var(--color-brand-400) 50deg, transparent 120deg); }
+.loader-core { animation: breathe 2.6s ease-in-out infinite; }
+
+.ecg-line { stroke-dasharray: 40 440; animation: ecg-move 1.6s linear infinite; }
+
+.bar-shimmer { animation: bar-shimmer 1.4s ease-in-out infinite; }
+.mesh-blob { animation: mesh-drift 9s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-ring, .scan-ring, .loader-core, .ecg-line, .bar-shimmer, .mesh-blob {
+    animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
+  }
+}

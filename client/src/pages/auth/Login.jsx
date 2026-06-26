@@ -6,12 +6,15 @@ import { Spinner } from '../../components/ui';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/Toast';
 import { homeFor } from '../../App';
+import SocialAuth from '../../components/SocialAuth';
+import { useLoader } from '../../components/loader/LoaderContext';
 import api from '../../api/client';
 
 export default function Login() {
   const { login, logout } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+  const loader = useLoader();
   const [params] = useSearchParams();
 
   const [role, setRole] = useState('patient'); // which kind of account you're signing into
@@ -37,6 +40,7 @@ export default function Login() {
       // Admins can sign in from either toggle and go to their panel.
       if (user.role === 'admin') {
         toast.success('Welcome back, admin.');
+        loader.flash(1500, 'Signing you in');
         navigate('/admin', { replace: true });
         return;
       }
@@ -48,6 +52,7 @@ export default function Login() {
         return;
       }
       toast.success(`Welcome back, ${user.name.split(' ')[0]}!`);
+      loader.flash(1500, 'Signing you in');
       navigate(homeFor(user.role), { replace: true });
     } catch (err) {
       if (/not verified/i.test(err.message)) setNeedsVerify(true);
@@ -118,6 +123,15 @@ export default function Login() {
         <button type="submit" disabled={busy} className="btn-primary w-full">
           {busy ? <Spinner className="h-4 w-4 border-white/40 border-t-white" /> : `Sign in as ${role}`}
         </button>
+
+        <SocialAuth
+          role={role}
+          onSuccess={(u) => {
+            toast.success(`Welcome, ${u.name.split(' ')[0]}!`);
+            loader.flash(1500, 'Signing you in');
+            navigate(homeFor(u.role), { replace: true });
+          }}
+        />
       </form>
     </AuthShell>
   );

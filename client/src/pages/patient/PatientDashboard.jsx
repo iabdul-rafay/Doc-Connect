@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarClock, Clock, CheckCircle2, Activity, Search, Pill, ArrowRight } from 'lucide-react';
+import { CalendarClock, Clock, CheckCircle2, Activity, Search, Pill, ArrowRight, Heart } from 'lucide-react';
 import { StatCard, PageLoader, StatusBadge, Avatar, EmptyState } from '../../components/ui';
 import { useAuth } from '../../context/AuthContext';
 import { formatDate } from '../../lib/format';
 import api from '../../api/client';
+import { DashboardSkeleton } from '../../components/Skeleton';
 
 export default function PatientDashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [recent, setRecent] = useState([]);
+  const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,9 +21,10 @@ export default function PatientDashboard() {
         setRecent(a.data.appointments.slice(0, 5));
       })
       .finally(() => setLoading(false));
+    api.get('/users/me/favorites').then(({ data }) => setFavorites(data.doctors || [])).catch(() => {});
   }, []);
 
-  if (loading) return <PageLoader />;
+  if (loading) return <DashboardSkeleton stats={4} />;
 
   return (
     <div className="space-y-7">
@@ -64,6 +67,31 @@ export default function PatientDashboard() {
           <ArrowRight size={18} className="text-faint transition group-hover:translate-x-1 group-hover:text-brand-600" />
         </Link>
       </div>
+
+      {/* Favorite doctors */}
+      {favorites.length > 0 && (
+        <div>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-ink">
+              <Heart size={18} className="fill-rose-500 text-rose-500" /> Favorite doctors
+            </h2>
+            <Link to="/patient/doctors" className="text-sm font-medium text-brand-700 hover:underline">Find more</Link>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {favorites.map((d, i) => (
+              <Link key={d.id} to="/patient/doctors" style={{ '--i': i }}
+                className="card stagger flex items-center gap-3 p-4 transition-shadow hover:shadow-[var(--shadow-glow)]">
+                <Avatar name={d.name} src={d.avatar} size={44} />
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-ink">{d.name}</p>
+                  <p className="truncate text-sm text-brand-700">{d.specialization}</p>
+                  {d.city && <p className="text-xs text-ink-soft">{d.city} · Rs. {d.fee}</p>}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Recent appointments */}
       <div>

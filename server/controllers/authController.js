@@ -8,6 +8,8 @@ const DoctorProfile = require('../models/DoctorProfile');
 const { asyncHandler, AppError } = require('../middleware/errorMiddleware');
 const { signAuthToken } = require('../utils/jwt');
 const { sendVerificationEmail, sendResetEmail } = require('../utils/email');
+const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
 
 const VERIFY_TTL = 24 * 60 * 60 * 1000; // 24h
 const RESET_TTL = 60 * 60 * 1000; // 1h
@@ -197,6 +199,55 @@ const resetPassword = asyncHandler(async (req, res) => {
   });
 });
 
+// POST /api/v1/auth/google  — sign in / sign up with a Google ID token
+const googleAuth = asyncHandler(async (req, res) => {
+  const { credential, role } = req.body;
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  if (!clientId) throw new AppError('Google sign-in is not configured on the server yet.', 501);
+  if (!credential) throw new AppError('Missing Google credential.', 400);
+
+  let payload;
+  try {
+    const client = new OAuth2Client(clientId);
+    const ticket = await client.verifyIdToken({ idToken: credential, audience: clientId });
+    payload = ticket.getPayload();
+  } catch {
+    throw new AppError('Could not verify your Google sign-in. Please try again.', 401);
+  }
+
+  const email = (payload.email || '').toLowerCase();
+  if (!email) throw new AppError('Your Google account did not share an email address.', 400);
+
+  let user = await User.findOne({ email });
+  if (!user) {
+    const chosenRole = ['patient', 'doctor'].includes(role) ? role : 'patient';
+    user = new User({
+      name: payload.name || email.split('@')[0],
+      email,
+      password: crypto.randomBytes(24).toString('hex'), // unused; they sign in via Google
+      role: chosenRole,
+      avatar: payload.picture || '',
+      isVerified: true, // Google has already verified the email
+    });
+    await user.save();
+    if (chosenRole === 'doctor') {
+      await DoctorProfile.create({ user: user._id, specialization: 'General Physician' });
+    }
+  } else if (!user.isVerified) {
+    user.isVerified = true;
+  }
+
+  user.lastLogin = new Date();
+  await user.save({ validateBeforeSave: false });
+
+  res.json({
+    success: true,
+    message: 'Signed in with Google.',
+    token: signAuthToken(user),
+    user: user.toJSON(),
+  });
+});
+
 module.exports = {
   register,
   verifyEmail,
@@ -205,4 +256,5 @@ module.exports = {
   getMe,
   forgotPassword,
   resetPassword,
+  googleAuth,
 };

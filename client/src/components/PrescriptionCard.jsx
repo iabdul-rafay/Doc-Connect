@@ -6,21 +6,24 @@ import { formatDate } from '../lib/format';
  * Renders a single prescription. `perspective` controls whose name is shown:
  * a patient sees the doctor; a doctor sees the patient.
  */
-export default function PrescriptionCard({ prescription: p, perspective = 'patient' }) {
+export default function PrescriptionCard({ prescription: p, perspective = 'patient', action }) {
   const person = perspective === 'patient' ? p.doctor : p.patient;
   const personLabel = perspective === 'patient' ? 'Prescribed by' : 'For patient';
 
   return (
-    <article className="card overflow-hidden">
+    <article className="card overflow-hidden transition-shadow hover:shadow-[var(--shadow-glow)]">
       <div className="flex items-center gap-3 border-b border-line bg-mist px-5 py-4">
         <Avatar name={person?.name} src={person?.avatar} size={42} />
         <div className="min-w-0 flex-1">
           <p className="text-xs uppercase tracking-wide text-faint">{personLabel}</p>
           <p className="truncate font-semibold text-ink">{person?.name}</p>
         </div>
-        <span className="flex items-center gap-1.5 text-sm text-ink-soft">
-          <CalendarCheck size={15} /> {formatDate(p.createdAt)}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="hidden items-center gap-1.5 text-sm text-ink-soft sm:flex">
+            <CalendarCheck size={15} /> {formatDate(p.createdAt)}
+          </span>
+          {action}
+        </div>
       </div>
 
       <div className="space-y-4 p-5">

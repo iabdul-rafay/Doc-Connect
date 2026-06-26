@@ -1,23 +1,28 @@
 import { useState } from 'react';
 import { NavLink, useNavigate, Outlet, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, CalendarClock, Stethoscope, Pill, Users, Search,
-  UserCircle, LogOut, Menu, X, Plus, ShieldCheck, HeartPulse,
+  LayoutDashboard, CalendarClock, CalendarDays, Stethoscope, Pill, Users, Search,
+  UserCircle, LogOut, Menu, X, ShieldCheck, HeartPulse,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Avatar } from './ui';
 import ThemeToggle from './ThemeToggle';
+import { LogoMark } from './Logo';
+import AnimatedBackground from './AnimatedBackground';
+import NotificationBell from './NotificationBell';
 
 const PATIENT_NAV = [
   { to: '/patient', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/patient/doctors', label: 'Find doctors', icon: Search },
   { to: '/patient/appointments', label: 'My appointments', icon: CalendarClock },
   { to: '/patient/prescriptions', label: 'Prescriptions', icon: Pill },
+  { to: '/patient/records', label: 'Medical records', icon: HeartPulse },
 ];
 
 const DOCTOR_NAV = [
   { to: '/doctor', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/doctor/appointments', label: 'Appointments', icon: CalendarClock },
+  { to: '/doctor/schedule', label: 'Schedule', icon: CalendarDays },
   { to: '/doctor/patients', label: 'Patients', icon: Users },
   { to: '/doctor/prescriptions', label: 'Prescriptions', icon: Pill },
   { to: '/doctor/profile', label: 'My profile', icon: Stethoscope },
@@ -55,11 +60,11 @@ export default function DashboardLayout() {
   const SidebarContent = (
     <>
       <div className="flex items-center gap-2.5 px-2 pb-6 pt-1">
-        <span className="grid h-9 w-9 place-items-center rounded-xl bg-white/15 text-white">
-          <Plus size={20} strokeWidth={3} />
+        <span className="grid h-10 w-10 place-items-center rounded-xl bg-white p-1 shadow-sm">
+          <LogoMark className="h-full w-full object-contain" />
         </span>
         <div>
-          <p className="font-display text-lg font-bold leading-none text-white">Doc-Connect</p>
+          <p className="font-display text-lg font-bold leading-none text-white">DocConnect</p>
           <p className="mt-0.5 flex items-center gap-1 text-xs capitalize text-brand-100/70">
             {user.role === 'admin' && <ShieldCheck size={11} />}{user.role} panel
           </p>
@@ -93,6 +98,7 @@ export default function DashboardLayout() {
 
   return (
     <div className="min-h-screen lg:flex">
+      <AnimatedBackground variant="subtle" />
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-screen w-64 flex-col bg-brand-800 p-4 lg:flex">
         {SidebarContent}
@@ -119,6 +125,7 @@ export default function DashboardLayout() {
             {open ? <X size={20} /> : <Menu size={20} />}
           </button>
           <div className="ml-auto flex items-center gap-3">
+            <NotificationBell />
             <ThemeToggle />
             <div className="hidden text-right sm:block">
               <p className="text-sm font-semibold text-ink">{user.name}</p>

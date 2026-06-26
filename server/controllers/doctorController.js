@@ -6,6 +6,8 @@ const User = require('../models/User');
 const DoctorProfile = require('../models/DoctorProfile');
 const Appointment = require('../models/Appointment');
 const Prescription = require('../models/Prescription');
+const Review = require('../models/Review');
+const mongoose = require('mongoose');
 const { asyncHandler, AppError } = require('../middleware/errorMiddleware');
 
 // GET /api/v1/doctors  (public) — search + filter by name/specialization/city
@@ -26,13 +28,27 @@ const listDoctors = asyncHandler(async (req, res) => {
   const term = search.trim().toLowerCase();
   const cityTerm = city.trim().toLowerCase();
 
+  const ratingMap = await ratingsFor(profiles.map((p) => p.user._id));
+
   const doctors = profiles
     .filter((p) => (term ? p.user.name.toLowerCase().includes(term) : true))
     .filter((p) => (cityTerm ? (p.user.city || '').toLowerCase().includes(cityTerm) : true))
-    .map(shapeDoctor);
+    .map((p) => shapeDoctor(p, ratingMap));
 
   res.json({ success: true, count: doctors.length, doctors });
 });
+
+// Aggregate average rating + count per doctor id, returned as a lookup map.
+async function ratingsFor(ids) {
+  if (!ids.length) return {};
+  const agg = await Review.aggregate([
+    { $match: { doctor: { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) } } },
+    { $group: { _id: '$doctor', avg: { $avg: '$rating' }, count: { $sum: 1 } } },
+  ]);
+  return Object.fromEntries(
+    agg.map((r) => [String(r._id), { average: Math.round(r.avg * 10) / 10, count: r.count }])
+  );
+}
 
 // GET /api/v1/doctors/:id  (public) — full profile of one doctor (by user id)
 const getDoctor = asyncHandler(async (req, res) => {
@@ -41,7 +57,8 @@ const getDoctor = asyncHandler(async (req, res) => {
     'name email city avatar phone'
   );
   if (!profile || !profile.user) throw new AppError('Doctor not found.', 404);
-  res.json({ success: true, doctor: shapeDoctor(profile) });
+  const ratingMap = await ratingsFor([profile.user._id]);
+  res.json({ success: true, doctor: shapeDoctor(profile, ratingMap) });
 });
 
 // GET /api/v1/doctors/me/profile  (doctor)
@@ -113,8 +130,9 @@ const getSpecializations = asyncHandler(async (_req, res) => {
   res.json({ success: true, specializations: DoctorProfile.SPECIALIZATIONS });
 });
 
-function shapeDoctor(profile) {
+function shapeDoctor(profile, ratingMap = {}) {
   const u = profile.user;
+  const r = ratingMap[String(u._id)] || { average: 0, count: 0 };
   return {
     id: u._id,
     profileId: profile._id,
@@ -134,6 +152,8 @@ function shapeDoctor(profile) {
     startTime: profile.startTime,
     endTime: profile.endTime,
     acceptingPatients: profile.acceptingPatients,
+    rating: r.average,
+    reviewCount: r.count,
   };
 }
 

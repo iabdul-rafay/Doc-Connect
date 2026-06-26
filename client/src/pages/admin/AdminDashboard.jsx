@@ -5,6 +5,8 @@ import { StatCard, PageLoader } from '../../components/ui';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/Toast';
 import api from '../../api/client';
+import { DashboardSkeleton } from '../../components/Skeleton';
+import { DonutCard, BarCard } from '../../components/Charts';
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -20,7 +22,7 @@ export default function AdminDashboard() {
       .finally(() => setLoading(false));
   }, []); // eslint-disable-line
 
-  if (loading) return <PageLoader />;
+  if (loading) return <DashboardSkeleton stats={6} />;
 
   return (
     <div className="space-y-7">
@@ -38,6 +40,18 @@ export default function AdminDashboard() {
         <StatCard icon={CalendarClock} label="Appointments" value={stats.appointments} tone="amber" />
         <StatCard icon={Pill} label="Prescriptions" value={stats.prescriptions} tone="emerald" />
         <StatCard icon={Users} label="Total users" value={stats.patients + stats.doctors} tone="brand" />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <DonutCard title="User base" subtitle="By role"
+          data={[{ name: 'Patients', value: stats.patients }, { name: 'Doctors', value: stats.doctors }].filter((d) => d.value > 0)} />
+        <BarCard title="Platform activity" subtitle="Totals" color="#06b6d4"
+          data={[
+            { name: 'Appts', value: stats.appointments },
+            { name: 'Scripts', value: stats.prescriptions },
+            { name: 'Verified', value: stats.verified },
+            { name: 'Users', value: stats.patients + stats.doctors },
+          ]} />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

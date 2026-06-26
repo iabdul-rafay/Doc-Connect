@@ -1,6 +1,7 @@
 import { initials, STATUS_STYLES } from '../lib/format';
 import { assetUrl } from '../api/client';
 import { X } from 'lucide-react';
+import CountUp from './CountUp';
 
 export function Spinner({ className = '' }) {
   return (
@@ -58,13 +59,14 @@ export function StatCard({ icon: Icon, label, value, tone = 'brand' }) {
     emerald: 'bg-emerald-50 text-emerald-700',
     rose: 'bg-rose-50 text-rose-700',
   };
+  const numeric = typeof value === 'number';
   return (
-    <div className="card flex items-center gap-4 p-5">
+    <div className="card flex items-center gap-4 p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-glow)]">
       <span className={`grid h-12 w-12 place-items-center rounded-xl ${tones[tone]}`}>
         <Icon size={22} />
       </span>
       <div>
-        <p className="text-2xl font-bold text-ink">{value}</p>
+        <p className="text-2xl font-bold text-ink">{numeric ? <CountUp value={value} /> : value}</p>
         <p className="text-sm text-ink-soft">{label}</p>
       </div>
     </div>

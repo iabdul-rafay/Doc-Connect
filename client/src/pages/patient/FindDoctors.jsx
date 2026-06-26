@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Search, MapPin, Stethoscope, Briefcase, Wallet, Star, CalendarPlus } from 'lucide-react';
+import { Search, MapPin, Stethoscope, Briefcase, Wallet, Star, CalendarPlus, Heart } from 'lucide-react';
 import { PageHeader, PageLoader, EmptyState, Avatar, Modal, Spinner } from '../../components/ui';
+import { Stars } from '../../components/StarRating';
 import { useToast } from '../../components/Toast';
 import { todayISO } from '../../lib/format';
 import api from '../../api/client';
@@ -12,6 +13,7 @@ export default function FindDoctors() {
   const [filters, setFilters] = useState({ search: '', specialization: '', city: '' });
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(null); // doctor being booked
+  const [favs, setFavs] = useState(new Set());
 
   const load = (params = filters) => {
     setLoading(true);
@@ -24,8 +26,24 @@ export default function FindDoctors() {
 
   useEffect(() => {
     api.get('/doctors/meta/specializations').then(({ data }) => setSpecs(data.specializations));
+    api.get('/users/me/favorites').then(({ data }) => setFavs(new Set((data.favorites || []).map(String)))).catch(() => {});
     load();
   }, []); // eslint-disable-line
+
+  const toggleFav = async (id) => {
+    // optimistic
+    setFavs((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+    try {
+      await api.post(`/users/me/favorites/${id}`);
+    } catch (err) {
+      toast.error(err.message);
+      setFavs((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+    }
+  };
 
   const onSearch = (e) => {
     e.preventDefault();
@@ -74,13 +92,26 @@ export default function FindDoctors() {
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {doctors.map((d) => (
-            <article key={d.id} className="card flex flex-col p-5">
+          {doctors.map((d, i) => (
+            <article key={d.id} style={{ '--i': i }}
+              className="card stagger relative flex flex-col p-5 transition-shadow hover:shadow-[var(--shadow-glow)]">
+              <button onClick={() => toggleFav(String(d.id))}
+                aria-label={favs.has(String(d.id)) ? 'Remove favorite' : 'Add favorite'}
+                className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-mist transition-colors hover:bg-rose-50">
+                <Heart size={16}
+                  className={favs.has(String(d.id)) ? 'fill-rose-500 text-rose-500' : 'text-faint'} />
+              </button>
               <div className="flex items-center gap-3">
                 <Avatar name={d.name} src={d.avatar} size={52} />
                 <div className="min-w-0">
                   <h3 className="truncate font-semibold text-ink">{d.name}</h3>
                   <p className="text-sm font-medium text-brand-700">{d.specialization}</p>
+                  <div className="mt-0.5 flex items-center gap-1.5">
+                    <Stars value={d.rating} size={13} />
+                    <span className="text-xs text-faint">
+                      {d.reviewCount > 0 ? `${d.rating} (${d.reviewCount})` : 'No reviews'}
+                    </span>
+                  </div>
                 </div>
               </div>
 

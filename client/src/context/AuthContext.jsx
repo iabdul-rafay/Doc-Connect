@@ -48,6 +48,12 @@ export function AuthProvider({ children }) {
     return data; // { success, message } — no token; must verify email first
   };
 
+  const googleLogin = async (credential, role) => {
+    const { data } = await api.post('/auth/google', { credential, role });
+    persist(data.token, data.user);
+    return data.user;
+  };
+
   // Used by the verify-email and reset-password flows, which return a token.
   const setSession = (token, nextUser) => persist(token, nextUser);
 
@@ -67,7 +73,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, register, logout, setSession, updateUser }}
+      value={{ user, loading, login, register, googleLogin, logout, setSession, updateUser }}
     >
       {children}
     </AuthContext.Provider>

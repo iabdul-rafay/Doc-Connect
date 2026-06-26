@@ -1,23 +1,24 @@
 import { Link } from 'react-router-dom';
-import { Plus, CalendarClock, Pill, ShieldCheck, Stethoscope, HeartPulse, ArrowRight } from 'lucide-react';
+import { CalendarClock, Pill, ShieldCheck, Stethoscope, HeartPulse, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { homeFor } from '../App';
 import ThemeToggle from '../components/ThemeToggle';
+import { LogoFull } from '../components/Logo';
+import AnimatedBackground from '../components/AnimatedBackground';
+import Reveal from '../components/Reveal';
 
 export default function Landing() {
   const { user } = useAuth();
   const dashboardHref = user ? homeFor(user.role) : '/register';
 
   return (
-    <div className="min-h-screen">
+    <div className="relative min-h-screen">
+      <AnimatedBackground variant="subtle" />
       {/* Nav */}
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
-        <div className="flex items-center gap-2.5">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-600 text-white">
-            <Plus size={20} strokeWidth={3} />
-          </span>
-          <span className="font-display text-lg font-bold text-ink">Doc-Connect</span>
-        </div>
+        <Link to="/" className="flex items-center">
+          <LogoFull className="h-10 sm:h-11" />
+        </Link>
         <nav className="flex items-center gap-2">
           <ThemeToggle className="mr-1" />
           {user ? (
@@ -73,14 +74,15 @@ export default function Landing() {
       {/* Features */}
       <section className="mx-auto max-w-6xl px-5 py-16">
         <div className="grid gap-4 sm:grid-cols-3">
-          <Feature icon={CalendarClock} title="Appointments" text="Request, confirm, and track every visit with live status updates." />
-          <Feature icon={Pill} title="Prescriptions" text="Doctors prescribe medicines with dosage and instructions, stored for patients." />
-          <Feature icon={ShieldCheck} title="Email verified" text="Every account confirms their email before they can sign in." />
+          <Reveal delay={0}><Feature icon={CalendarClock} title="Appointments" text="Request, confirm, and track every visit with live status updates." /></Reveal>
+          <Reveal delay={120}><Feature icon={Pill} title="Prescriptions" text="Doctors prescribe medicines with dosage and instructions, stored for patients." /></Reveal>
+          <Reveal delay={240}><Feature icon={ShieldCheck} title="Email verified" text="Every account confirms their email before they can sign in." /></Reveal>
         </div>
       </section>
 
       <footer className="border-t border-line py-8 text-center text-sm text-ink-soft">
-        © {new Date().getFullYear()} Doc-Connect — a doctor appointment management platform.
+        <LogoFull className="mx-auto mb-3 h-9 opacity-90" />
+        © {new Date().getFullYear()} DocConnect — a doctor appointment management platform.
       </footer>
     </div>
   );

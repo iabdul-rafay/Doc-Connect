@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   User, Mail, Lock, Stethoscope, HeartPulse, Eye, EyeOff, MailCheck,
   ArrowRight, ArrowLeft, Check,
@@ -9,6 +9,9 @@ import { Spinner } from '../../components/ui';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/Toast';
 import api from '../../api/client';
+import SocialAuth from '../../components/SocialAuth';
+import { homeFor } from '../../App';
+import { useLoader } from '../../components/loader/LoaderContext';
 
 const ROLES = [
   { value: 'patient', icon: HeartPulse, title: "I'm a patient", blurb: 'Find doctors, book visits, get prescriptions.' },
@@ -18,6 +21,8 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 
 export default function Register() {
   const { register } = useAuth();
+  const navigate = useNavigate();
+  const loader = useLoader();
   const toast = useToast();
 
   const [role, setRole] = useState('patient');
@@ -78,6 +83,7 @@ export default function Register() {
     setBusy(true);
     try {
       await register(payload);
+      loader.flash(1400, 'Creating your account');
       setSentTo(form.email);
     } catch (err) {
       toast.error(err.message);
@@ -198,6 +204,8 @@ export default function Register() {
                 {busy ? <Spinner className="h-4 w-4 border-white/40 border-t-white" /> : 'Create account'}
               </button>
             )}
+
+            <SocialAuth role={role} onSuccess={(u) => { loader.flash(1500, 'Signing you in'); navigate(homeFor(u.role), { replace: true }); }} />
           </div>
         )}
 

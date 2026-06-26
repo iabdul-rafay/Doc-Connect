@@ -1,82 +1,92 @@
 @import "tailwindcss";
 
-/* Enable class-based dark mode: utilities with `dark:` apply under .dark */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* ── Design tokens ──────────────────────────────────────────────────────────
-   "Clinical Calm, after dark" — a trustworthy teal identity with a deep,
-   slightly luminous dark theme. Neutral tokens flip between light and dark;
-   the teal brand scale and status pills stay constant so accents glow on dark. */
+/* ════════════════════════════════════════════════════════════════════════
+   DocConnect — futuristic medical theme: emerald green + cyan + mint, with
+   glassmorphism and glow. Neutral tokens flip for dark/light; the brand and
+   cyan accents stay constant so glows read on both.
+   ════════════════════════════════════════════════════════════════════════ */
 @theme {
-  --color-brand-50: #effaf8;
-  --color-brand-100: #d7f1ec;
-  --color-brand-200: #b0e3da;
-  --color-brand-300: #7fcec1;
-  --color-brand-400: #4cb3a4;
-  --color-brand-500: #2c9789;
-  --color-brand-600: #0f766e;
-  --color-brand-700: #115e58;
-  --color-brand-800: #134e49;
-  --color-brand-900: #14302d;
+  /* Primary = emerald green */
+  --color-brand-50: #ecfdf5;
+  --color-brand-100: #d1fae5;
+  --color-brand-200: #a7f3d0;
+  --color-brand-300: #6ee7b7;
+  --color-brand-400: #34d399;
+  --color-brand-500: #10b981;
+  --color-brand-600: #059669;
+  --color-brand-700: #047857;
+  --color-brand-800: #065f46;
+  --color-brand-900: #064e3b;
+
+  /* Cyan accent (for gradients / glows) */
+  --color-cyan-400: #22d3ee;
+  --color-cyan-500: #06b6d4;
+  --color-cyan-600: #0891b2;
 
   /* Semantic neutrals (light defaults) */
-  --color-canvas: #eef2f1;
+  --color-canvas: #f2f8f5;
   --color-surface: #ffffff;
-  --color-mist: #f1f5f4;
-  --color-line: #e2e8e6;
-  --color-ink: #14302d;
-  --color-ink-soft: #4a625e;
-  --color-faint: #94a3b8;
+  --color-mist: #eef5f1;
+  --color-line: #d9e8e1;
+  --color-ink: #0b2c22;
+  --color-ink-soft: #496156;
+  --color-faint: #8aa79a;
   --color-amber: #f59e0b;
 
   --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 
-  --shadow-card: 0 1px 2px rgba(20, 48, 45, 0.04), 0 8px 24px -12px rgba(20, 48, 45, 0.18);
-  --shadow-glow: 0 0 0 1px rgba(15, 118, 110, 0.08), 0 18px 50px -20px rgba(15, 118, 110, 0.35);
+  --shadow-card: 0 1px 2px rgba(6, 78, 59, 0.05), 0 12px 30px -16px rgba(6, 95, 70, 0.25);
+  --shadow-glow: 0 0 0 1px rgba(16, 185, 129, 0.10), 0 20px 55px -22px rgba(6, 182, 212, 0.45);
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.6);
 
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Dark theme — override neutral tokens only */
+/* Dark = deep green-navy glass + neon glow */
 .dark {
-  --color-canvas: #0a1413;
-  --color-surface: #11201e;
-  --color-mist: #16302d;
-  --color-line: #21413c;
-  --color-ink: #e7f1ef;
-  --color-ink-soft: #9fb9b4;
-  --color-faint: #6f8a85;
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 16px 40px -20px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 0 1px rgba(45, 212, 191, 0.12), 0 18px 60px -20px rgba(13, 148, 136, 0.45);
+  --color-canvas: #05120e;
+  --color-surface: #0a1a16;
+  --color-mist: #0f231d;
+  --color-line: #1b3a31;
+  --color-ink: #e6fff4;
+  --color-ink-soft: #9cc4b6;
+  --color-faint: #5f8478;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 44px -20px rgba(0, 0, 0, 0.7);
+  --shadow-glow: 0 0 0 1px rgba(52, 211, 153, 0.18), 0 22px 60px -22px rgba(6, 182, 212, 0.5);
+  --glass-bg: rgba(12, 28, 23, 0.55);
+  --glass-border: rgba(52, 211, 153, 0.16);
 }
 
 @layer base {
   html { scroll-behavior: smooth; }
   body {
     @apply bg-canvas text-ink font-sans antialiased;
-    transition: background-color 0.4s var(--ease-out-soft), color 0.4s var(--ease-out-soft);
+    transition: background-color 0.5s var(--ease-out-soft), color 0.5s var(--ease-out-soft);
   }
   h1, h2, h3, h4 { @apply font-display tracking-tight; }
   :focus-visible {
-    @apply outline-none ring-2 ring-brand-500 ring-offset-2;
+    @apply outline-none ring-2 ring-brand-500;
+    --tw-ring-offset-width: 2px;
     --tw-ring-offset-color: var(--color-canvas);
   }
 }
 
 @layer components {
-  .btn,
-  .btn-primary,
-  .btn-ghost,
-  .btn-outline,
-  .btn-danger {
+  .btn, .btn-primary, .btn-ghost, .btn-outline, .btn-danger {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
            text-sm font-semibold transition-all duration-200 disabled:cursor-not-allowed
            disabled:opacity-60 active:scale-[0.97];
   }
   .btn-primary {
-    @apply bg-brand-600 text-white hover:bg-brand-500 hover:shadow-[0_10px_30px_-10px_rgba(15,118,110,0.7)];
+    background-image: linear-gradient(120deg, var(--color-brand-500), var(--color-cyan-500));
+    @apply text-white;
+    box-shadow: 0 10px 26px -12px rgba(6, 182, 212, 0.6);
   }
+  .btn-primary:hover { filter: brightness(1.06); box-shadow: 0 14px 34px -12px rgba(16, 185, 129, 0.7); }
   .btn-ghost { @apply bg-brand-50 text-brand-700 hover:bg-brand-100; }
   .btn-outline { @apply border border-line bg-surface text-brand-700 hover:bg-brand-50; }
   .btn-danger { @apply bg-rose-50 text-rose-700 hover:bg-rose-100; }
@@ -84,22 +94,51 @@
   .field {
     @apply w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm
            text-ink placeholder:text-faint transition
-           focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20;
+           focus:border-brand-400 focus:ring-2 focus:ring-brand-500/25;
   }
   .label { @apply mb-1.5 block text-sm font-medium text-ink-soft; }
 
+  /* Glassmorphic card — frosted, glowing, themed for both modes */
   .card {
-    @apply rounded-2xl border border-line bg-surface shadow-[var(--shadow-card)];
+    background: var(--glass-bg);
+    border: 1px solid var(--color-line);
+    backdrop-filter: blur(14px) saturate(1.1);
+    -webkit-backdrop-filter: blur(14px) saturate(1.1);
+    box-shadow: var(--shadow-card);
+    @apply rounded-2xl;
   }
-  /* Subtle gradient-bordered surface for hero/feature emphasis */
   .glass {
-    @apply rounded-2xl border border-line bg-surface/80 backdrop-blur-xl;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(18px) saturate(1.15);
+    -webkit-backdrop-filter: blur(18px) saturate(1.15);
+    @apply rounded-2xl;
+  }
+  .glass-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(22px) saturate(1.2);
+    -webkit-backdrop-filter: blur(22px) saturate(1.2);
+    box-shadow: var(--shadow-glow);
+    position: relative;
+  }
+  /* Subtle neon gradient border around the glass login card (static, never
+     captures clicks — pointer-events:none is essential so the role switcher
+     and inputs underneath stay clickable). */
+  .glass-card::before {
+    content: "";
+    position: absolute; inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    pointer-events: none;
+    background: linear-gradient(130deg, var(--color-brand-400), var(--color-cyan-400), transparent 65%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    opacity: 0.55;
   }
   .text-gradient {
-    background: linear-gradient(120deg, var(--color-brand-500), var(--color-brand-700));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    background: linear-gradient(120deg, var(--color-brand-500), var(--color-cyan-500));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
   }
 }
 
@@ -108,21 +147,61 @@
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes scale-in { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: none; } }
 @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-@keyframes drift { 0% { transform: translate(0,0); } 50% { transform: translate(30px,-20px); } 100% { transform: translate(0,0); } }
+@keyframes drift { 0%,100% { transform: translate(0,0); } 50% { transform: translate(30px,-20px); } }
+@keyframes aurora-1 { 0%,100% { transform: translate(-8%,-6%) scale(1); } 50% { transform: translate(10%,8%) scale(1.25); } }
+@keyframes aurora-2 { 0%,100% { transform: translate(6%,4%) scale(1.1); } 50% { transform: translate(-10%,-8%) scale(0.9); } }
+@keyframes aurora-3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(8%,-10%) scale(1.2); } }
+@keyframes grid-pan { from { background-position: 0 0; } to { background-position: 48px 48px; } }
+@keyframes orb-rise { 0% { transform: translateY(20vh) scale(0.6); opacity: 0; } 15%,85% { opacity: .55; } 100% { transform: translateY(-110vh) scale(1.1); opacity: 0; } }
+@keyframes shimmer { 100% { transform: translateX(100%); } }
 
 .animate-fade-up { animation: fade-up 0.55s var(--ease-out-soft) both; }
 .animate-fade-in { animation: fade-in 0.6s var(--ease-out-soft) both; }
 .animate-scale-in { animation: scale-in 0.35s var(--ease-out-soft) both; }
 .animate-float { animation: float 6s ease-in-out infinite; }
 
-/* Animated ambient blobs for auth / landing backdrops */
-.ambient { position: absolute; border-radius: 9999px; filter: blur(64px); animation: drift 16s ease-in-out infinite; }
+.ambient, .aurora { position: absolute; border-radius: 9999px; filter: blur(70px); }
+.ambient { animation: drift 16s ease-in-out infinite; }
+.aurora { opacity: 0.55; }
+.aurora-a { animation: aurora-1 18s ease-in-out infinite; }
+.aurora-b { animation: aurora-2 22s ease-in-out infinite; }
+.aurora-c { animation: aurora-3 26s ease-in-out infinite; }
+
+.bg-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--color-brand-500) 14%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-brand-500) 14%, transparent) 1px, transparent 1px);
+  background-size: 48px 48px;
+  animation: grid-pan 14s linear infinite;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 30%, transparent 75%);
+}
+.floating-orb { position: absolute; bottom: -10vh; border-radius: 9999px; animation: orb-rise linear infinite; }
+
+.stagger { animation: fade-up 0.6s var(--ease-out-soft) both; animation-delay: calc(var(--i, 0) * 70ms); }
+
+/* Scroll-reveal: starts hidden, .reveal-in (added by observer) animates in */
+.reveal { opacity: 0; transform: translateY(22px); transition: opacity .7s var(--ease-out-soft), transform .7s var(--ease-out-soft); }
+.reveal-in { opacity: 1; transform: none; }
+
+/* Skeleton shimmer */
+.skeleton {
+  position: relative; overflow: hidden;
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  border-radius: 0.6rem;
+}
+.skeleton::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-brand-400) 22%, transparent), transparent);
+  animation: shimmer 1.4s infinite;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  *, .ambient {
+  *, .ambient, .aurora, .floating-orb, .bg-grid, .glass-card::before, .skeleton::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+  .reveal { opacity: 1; transform: none; }
 }

@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
+import { useLoader } from './components/loader/LoaderContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardLayout from './components/DashboardLayout';
 
@@ -14,9 +16,11 @@ import PatientDashboard from './pages/patient/PatientDashboard';
 import FindDoctors from './pages/patient/FindDoctors';
 import MyAppointments from './pages/patient/MyAppointments';
 import MyPrescriptions from './pages/patient/MyPrescriptions';
+import MedicalRecords from './pages/patient/MedicalRecords';
 
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
 import DoctorAppointments from './pages/doctor/DoctorAppointments';
+import DoctorSchedule from './pages/doctor/DoctorSchedule';
 import DoctorPatients from './pages/doctor/DoctorPatients';
 import DoctorPrescriptions from './pages/doctor/DoctorPrescriptions';
 import DoctorProfile from './pages/doctor/DoctorProfile';
@@ -41,6 +45,15 @@ function PublicOnly({ children }) {
 }
 
 export default function App() {
+  const { loading } = useAuth();
+  const { begin, end } = useLoader();
+
+  // Show the loading screen while the app verifies the session on first load.
+  useEffect(() => {
+    if (loading) begin('Starting DocConnect');
+    else end();
+  }, [loading]); // eslint-disable-line
+
   return (
     <Routes>
       {/* Public */}
@@ -57,6 +70,7 @@ export default function App() {
         <Route path="doctors" element={<FindDoctors />} />
         <Route path="appointments" element={<MyAppointments />} />
         <Route path="prescriptions" element={<MyPrescriptions />} />
+        <Route path="records" element={<MedicalRecords />} />
         <Route path="account" element={<AccountSettings />} />
       </Route>
 
@@ -64,6 +78,7 @@ export default function App() {
       <Route path="/doctor" element={<ProtectedRoute role="doctor"><DashboardLayout /></ProtectedRoute>}>
         <Route index element={<DoctorDashboard />} />
         <Route path="appointments" element={<DoctorAppointments />} />
+        <Route path="schedule" element={<DoctorSchedule />} />
         <Route path="patients" element={<DoctorPatients />} />
         <Route path="prescriptions" element={<DoctorPrescriptions />} />
         <Route path="profile" element={<DoctorProfile />} />

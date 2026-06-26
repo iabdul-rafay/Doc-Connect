@@ -1,17 +1,43 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, CalendarClock, CheckCircle2, Users, Pill, Activity, ArrowRight } from 'lucide-react';
+import { Clock, CalendarClock, CheckCircle2, Users, Pill, Activity, ArrowRight, Wallet } from 'lucide-react';
 import { StatCard, PageLoader, Avatar, EmptyState, Spinner } from '../../components/ui';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/Toast';
 import { formatDate } from '../../lib/format';
 import api from '../../api/client';
+import { DashboardSkeleton } from '../../components/Skeleton';
+import { BarCard, DonutCard } from '../../components/Charts';
+
+function last7Days(appts) {
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    days.push({ iso: d.toISOString().slice(0, 10), name: d.toLocaleDateString('en-US', { weekday: 'short' }), value: 0 });
+  }
+  const map = Object.fromEntries(days.map((d) => [d.iso, d]));
+  appts.forEach((a) => { const iso = (a.date || '').slice(0, 10); if (map[iso]) map[iso].value++; });
+  return days;
+}
+function statusBreakdown(appts) {
+  const c = { pending: 0, confirmed: 0, completed: 0, cancelled: 0 };
+  appts.forEach((a) => { if (c[a.status] != null) c[a.status]++; });
+  return [
+    { name: 'Pending', value: c.pending },
+    { name: 'Confirmed', value: c.confirmed },
+    { name: 'Completed', value: c.completed },
+    { name: 'Cancelled', value: c.cancelled },
+  ].filter((d) => d.value > 0);
+}
 
 export default function DoctorDashboard() {
   const { user } = useAuth();
   const toast = useToast();
   const [stats, setStats] = useState(null);
   const [pending, setPending] = useState([]);
+  const [allAppts, setAllAppts] = useState([]);
+  const [fee, setFee] = useState(0);
   const [loading, setLoading] = useState(true);
   const [actingId, setActingId] = useState(null);
 
@@ -19,16 +45,24 @@ export default function DoctorDashboard() {
     Promise.all([
       api.get('/doctors/me/stats'),
       api.get('/appointments/doctor', { params: { status: 'pending' } }),
+      api.get('/appointments/doctor'),
+      api.get('/doctors/me/profile'),
     ])
-      .then(([s, a]) => {
+      .then(([s, a, all, prof]) => {
         setStats(s.data.stats);
         setPending(a.data.appointments.slice(0, 5));
+        setAllAppts(all.data.appointments || []);
+        setFee(prof.data.profile?.fee || 0);
       })
       .catch((err) => toast.error(err.message))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => { load(); }, []); // eslint-disable-line
+
+  const weekData = useMemo(() => last7Days(allAppts), [allAppts]);
+  const statusData = useMemo(() => statusBreakdown(allAppts), [allAppts]);
+  const earnings = (stats?.completed || 0) * fee;
 
   const respond = async (id, status) => {
     setActingId(id);
@@ -44,7 +78,7 @@ export default function DoctorDashboard() {
     }
   };
 
-  if (loading) return <PageLoader />;
+  if (loading) return <DashboardSkeleton stats={6} />;
 
   return (
     <div className="space-y-7">
@@ -60,6 +94,17 @@ export default function DoctorDashboard() {
         <StatCard icon={Users} label="Patients" value={stats.uniquePatients} tone="brand" />
         <StatCard icon={Pill} label="Prescriptions" value={stats.prescriptions} tone="emerald" />
         <StatCard icon={Activity} label="Total appointments" value={stats.totalAppointments} tone="brand" />
+        <StatCard icon={Wallet} label="Earnings (est.)" value={`Rs. ${earnings.toLocaleString()}`} tone="amber" />
+      </div>
+
+      {/* Analytics */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <BarCard title="Appointments this week" subtitle="Last 7 days" data={weekData} />
+        {statusData.length > 0 ? (
+          <DonutCard title="Appointment status" subtitle="All time" data={statusData} />
+        ) : (
+          <div className="card grid place-items-center p-5 text-sm text-ink-soft">No appointment data yet.</div>
+        )}
       </div>
 
       <div>

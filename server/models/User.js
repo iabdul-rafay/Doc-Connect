@@ -55,6 +55,18 @@ const userSchema = new mongoose.Schema(
     resetTokenExpires: { type: Date, select: false },
 
     lastLogin: { type: Date },
+
+    // Patients can favorite doctors (array of doctor user ids).
+    favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+
+    // Patient medical record (self-managed; visible to doctors on appointments).
+    medical: {
+      bloodGroup: { type: String, default: '' },
+      dateOfBirth: { type: String, default: '' },
+      allergies: { type: String, default: '' },
+      conditions: { type: String, default: '' },
+      emergencyContact: { type: String, default: '' },
+    },
   },
   {
     timestamps: true,

@@ -1,10 +1,14 @@
 /**
  * controllers/prescriptionController.js
  * Doctors write prescriptions (diagnosis + medicines); both sides can read them.
+ * Read endpoints also attach `doctorMeta` (specialization/qualifications/hospital)
+ * so the client can render a proper prescription letterhead / PDF.
  */
 const Prescription = require('../models/Prescription');
 const Appointment = require('../models/Appointment');
+const DoctorProfile = require('../models/DoctorProfile');
 const { asyncHandler, AppError } = require('../middleware/errorMiddleware');
+const notify = require('../utils/notify');
 
 // POST /api/v1/prescriptions  (doctor)
 const createPrescription = asyncHandler(async (req, res) => {
@@ -50,6 +54,12 @@ const createPrescription = asyncHandler(async (req, res) => {
     await appointment.save();
   }
 
+  await notify(patient, {
+    type: 'prescription',
+    title: 'New prescription',
+    message: ` added a new prescription for you.`,
+    link: '/patient/prescriptions',
+  });
   res.status(201).json({ success: true, message: 'Prescription saved.', prescription });
 });
 
@@ -57,15 +67,35 @@ const createPrescription = asyncHandler(async (req, res) => {
 const myPrescriptions = asyncHandler(async (req, res) => {
   const prescriptions = await Prescription.find({ patient: req.user._id })
     .populate('doctor', 'name email avatar')
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const ids = [...new Set(prescriptions.map((p) => String(p.doctor?._id)).filter(Boolean))];
+  const profiles = await DoctorProfile.find({ user: { $in: ids } })
+    .select('user specialization qualifications hospital fee')
+    .lean();
+  const byUser = Object.fromEntries(profiles.map((p) => [String(p.user), p]));
+  prescriptions.forEach((p) => {
+    p.doctorMeta = p.doctor ? byUser[String(p.doctor._id)] || null : null;
+  });
+
   res.json({ success: true, count: prescriptions.length, prescriptions });
 });
 
 // GET /api/v1/prescriptions/doctor  (doctor)
 const doctorPrescriptions = asyncHandler(async (req, res) => {
   const prescriptions = await Prescription.find({ doctor: req.user._id })
-    .populate('patient', 'name email avatar')
-    .sort({ createdAt: -1 });
+    .populate('patient', 'name email avatar phone city')
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const profile = await DoctorProfile.findOne({ user: req.user._id })
+    .select('specialization qualifications hospital fee')
+    .lean();
+  prescriptions.forEach((p) => {
+    p.doctorMeta = profile || null;
+  });
+
   res.json({ success: true, count: prescriptions.length, prescriptions });
 });
 

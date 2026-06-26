@@ -5,6 +5,7 @@
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
 const { asyncHandler, AppError } = require('../middleware/errorMiddleware');
+const notify = require('../utils/notify');
 
 // POST /api/v1/appointments  (patient)
 const bookAppointment = asyncHandler(async (req, res) => {
@@ -34,6 +35,12 @@ const bookAppointment = asyncHandler(async (req, res) => {
     reason,
   });
 
+  await notify(doctorId, {
+    type: 'appointment',
+    title: 'New appointment request',
+    message: ` requested  at .`,
+    link: '/doctor/appointments',
+  });
   res.status(201).json({ success: true, message: 'Appointment requested.', appointment });
 });
 
@@ -52,7 +59,7 @@ const doctorAppointments = asyncHandler(async (req, res) => {
   if (status) filter.status = status;
 
   const appointments = await Appointment.find(filter)
-    .populate('patient', 'name email phone avatar city')
+    .populate('patient', 'name email phone avatar city medical')
     .sort({ createdAt: -1 });
   res.json({ success: true, count: appointments.length, appointments });
 });
@@ -69,6 +76,12 @@ const updateStatus = asyncHandler(async (req, res) => {
   if (doctorNote !== undefined) appointment.doctorNote = doctorNote;
   await appointment.save();
 
+  await notify(appointment.patient, {
+    type: 'appointment',
+    title: `Appointment `,
+    message: ` marked your appointment as .`,
+    link: '/patient/appointments',
+  });
   res.json({ success: true, message: `Appointment marked ${status}.`, appointment });
 });
 
@@ -81,6 +94,12 @@ const cancelOwn = asyncHandler(async (req, res) => {
   }
   appointment.status = 'cancelled';
   await appointment.save();
+  await notify(appointment.doctor, {
+    type: 'appointment',
+    title: 'Appointment cancelled',
+    message: ` cancelled their appointment.`,
+    link: '/doctor/appointments',
+  });
   res.json({ success: true, message: 'Appointment cancelled.', appointment });
 });
 

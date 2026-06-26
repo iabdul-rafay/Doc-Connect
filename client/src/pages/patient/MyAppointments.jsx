@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarClock, X, MessageSquare } from 'lucide-react';
-import { PageHeader, PageLoader, EmptyState, Avatar, StatusBadge } from '../../components/ui';
+import { CalendarClock, X, MessageSquare, Star } from 'lucide-react';
+import { PageHeader, PageLoader, EmptyState, Avatar, StatusBadge, Modal, Spinner } from '../../components/ui';
+import { Stars, StarInput } from '../../components/StarRating';
 import { useToast } from '../../components/Toast';
 import { formatDate } from '../../lib/format';
 import api from '../../api/client';
@@ -11,14 +12,20 @@ const TABS = ['all', 'pending', 'confirmed', 'completed', 'cancelled'];
 export default function MyAppointments() {
   const toast = useToast();
   const [appointments, setAppointments] = useState([]);
+  const [reviews, setReviews] = useState({}); // appointmentId -> {rating}
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('all');
+  const [reviewing, setReviewing] = useState(null);
 
   const load = () => {
     setLoading(true);
-    api
-      .get('/appointments/mine')
-      .then(({ data }) => setAppointments(data.appointments))
+    Promise.all([api.get('/appointments/mine'), api.get('/reviews/mine')])
+      .then(([a, r]) => {
+        setAppointments(a.data.appointments);
+        const map = {};
+        r.data.reviews.forEach((rv) => { if (rv.appointment) map[rv.appointment] = rv; });
+        setReviews(map);
+      })
       .catch((err) => toast.error(err.message))
       .finally(() => setLoading(false));
   };
@@ -39,17 +46,14 @@ export default function MyAppointments() {
 
   return (
     <div>
-      <PageHeader title="My appointments" subtitle="Track and manage your bookings." />
+      <PageHeader title="My appointments" subtitle="Track your bookings and review doctors after a visit." />
 
       <div className="mb-5 flex flex-wrap gap-2">
         {TABS.map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
+          <button key={t} onClick={() => setTab(t)}
             className={`rounded-full px-4 py-1.5 text-sm font-medium capitalize transition ${
               tab === t ? 'bg-brand-600 text-white' : 'bg-surface text-ink-soft ring-1 ring-line hover:bg-mist'
-            }`}
-          >
+            }`}>
             {t}
           </button>
         ))}
@@ -66,8 +70,8 @@ export default function MyAppointments() {
         />
       ) : (
         <div className="space-y-3">
-          {shown.map((a) => (
-            <div key={a._id} className="card p-4 sm:p-5">
+          {shown.map((a, i) => (
+            <div key={a._id} className="card stagger p-4 sm:p-5" style={{ '--i': i }}>
               <div className="flex flex-wrap items-center gap-4">
                 <Avatar name={a.doctor?.name} src={a.doctor?.avatar} size={48} />
                 <div className="min-w-0 flex-1">
@@ -79,6 +83,17 @@ export default function MyAppointments() {
                   <button onClick={() => cancel(a._id)} className="btn-danger text-xs">
                     <X size={15} /> Cancel
                   </button>
+                )}
+                {a.status === 'completed' && (
+                  reviews[a._id] ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                      <Stars value={reviews[a._id].rating} size={12} /> Reviewed
+                    </span>
+                  ) : (
+                    <button onClick={() => setReviewing(a)} className="btn-ghost text-xs">
+                      <Star size={14} /> Leave a review
+                    </button>
+                  )
                 )}
               </div>
 
@@ -97,6 +112,63 @@ export default function MyAppointments() {
           ))}
         </div>
       )}
+
+      <ReviewModal appointment={reviewing} onClose={() => setReviewing(null)} onSaved={load} />
     </div>
+  );
+}
+
+function ReviewModal({ appointment, onClose, onSaved }) {
+  const toast = useToast();
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (appointment) { setRating(5); setComment(''); }
+  }, [appointment]);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await api.post('/reviews', {
+        doctorId: appointment.doctor?._id,
+        appointmentId: appointment._id,
+        rating,
+        comment,
+      });
+      toast.success('Thanks for your review!');
+      onClose();
+      onSaved();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal open={!!appointment} onClose={onClose} title={appointment ? `Review ${appointment.doctor?.name}` : ''}>
+      {appointment && (
+        <form onSubmit={submit} className="space-y-4">
+          <div className="flex flex-col items-center gap-2 py-2">
+            <StarInput value={rating} onChange={setRating} />
+            <span className="text-sm text-ink-soft">{['', 'Poor', 'Fair', 'Good', 'Very good', 'Excellent'][rating]}</span>
+          </div>
+          <div>
+            <label className="label">Comment <span className="text-faint">(optional)</span></label>
+            <textarea rows={3} value={comment} onChange={(e) => setComment(e.target.value)}
+              placeholder="Share your experience to help other patients." className="field resize-none" />
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={onClose} className="btn-outline flex-1">Cancel</button>
+            <button type="submit" disabled={busy} className="btn-primary flex-1">
+              {busy ? <Spinner className="h-4 w-4 border-white/40 border-t-white" /> : 'Submit review'}
+            </button>
+          </div>
+        </form>
+      )}
+    </Modal>
   );
 }
